@@ -162,7 +162,8 @@ contains
 		else
 			i=i+1
 			if(i*(nPar+3)>size(evDataAll)) exit
-			ltmp(1:nPar+2)=evDataAll((i-1)*(nPar+3)+1:i*(nPar+3)-1)
+			ltmp(1:nPar+1)=evDataAll((i-1)*(nPar+4)+1:(i-1)*(nPar+4)+nPar+1)
+			ltmp(nPar+2)=evDataAll((i-1)*(nPar+4)+nPar+3)
 			i1=int(evDataAll(i*(nPar+3)))
 		endif
 		
@@ -209,8 +210,8 @@ contains
 	if(outfile) then
       		open(55,file=postfile,form='formatted',status='replace')
       		open(56,file=postfile4,form='formatted',status='replace')
-      		write(fmt,'(a,i4,a)')  '(',nPar+2,'E28.18)'
-      		write(fmt2,'(a,i4,a)')  '(',nPar+1,'E28.18)'
+      		write(fmt,'(a,i4,a)')  '(',nPar+2,'E28.18E4)'
+      		write(fmt2,'(a,i4,a)')  '(',nPar+1,'E28.18E4)'
 	endif
       	do i=1,ic_n
       		do j=1,nPtPerNode(i)
@@ -258,8 +259,8 @@ contains
       			
 		open(unit=57,file=statsFile,form='formatted',status='replace')
       		!stats file
-		write(57,'(a,E28.18,a,E28.18)')		"Nested Sampling Global Log-Evidence           :",gzloc,"  +/-",sqrt(ginfoloc/dble(nLpt))
-		if( IS ) write(57,'(a,E28.18,a,E28.18)')"Nested Importance Sampling Global Log-Evidence:",IS_Z(1),"  +/-",IS_Z(2)
+		write(57,'(a,E28.18E4,a,E28.18E4)')		"Nested Sampling Global Log-Evidence           :",gzloc,"  +/-",sqrt(ginfoloc/dble(nLpt))
+		if( IS ) write(57,'(a,E28.18E4,a,E28.18E4)')"Nested Importance Sampling Global Log-Evidence:",IS_Z(1),"  +/-",IS_Z(2)
 	      		
 		!now the separated posterior samples
 	      
@@ -343,11 +344,11 @@ contains
 		
 		open(unit=58,file=summaryFile,status='unknown')
 		if( IS ) then
-			write(fmt,'(a,i4,a)')  '(',nPar*4+4,'E28.18)'
+			write(fmt,'(a,i4,a)')  '(',nPar*4+4,'E28.18E4)'
 			write(58,fmt)paramConstr(1:nPar),paramConstr(nPar+1:2*nPar),paramConstr(nPar*2+1:nPar*3), &
 			paramConstr(nPar*3+1:nPar*4),globZ,maxLogLike,IS_Z
 		else
-			write(fmt,'(a,i4,a)')  '(',nPar*4+2,'E28.18)'
+			write(fmt,'(a,i4,a)')  '(',nPar*4+2,'E28.18E4)'
 			write(58,fmt)paramConstr(1:nPar),paramConstr(nPar+1:2*nPar),paramConstr(nPar*2+1:nPar*3), &
 			paramConstr(nPar*3+1:nPar*4),globZ,maxLogLike
 		endif
@@ -463,7 +464,7 @@ contains
 	character*30 fmt,stfmt
 
 	nliveP=sum(locNpt(1:nCls))
-	write(stfmt,'(a,i4,a)')  '(',nPar*4+2,'E28.18)'
+	write(stfmt,'(a,i4,a)')  '(',nPar*4+2,'E28.18E4)'
 
 	!calculate the weights including the posterior component
 	do i=1,nCls
@@ -503,7 +504,7 @@ contains
 			
 			if(multimodal) then
 				!write the strictly separate file
-      				write(fmt,'(a,i4,a)')  '(',nPar+2,'E28.18)'
+      				write(fmt,'(a,i4,a)')  '(',nPar+2,'E28.18E4)'
 				!strictly separate points
 !				if(j>k .and. j<k+nCon(i)+1) then
 !					!probability weight
@@ -541,26 +542,26 @@ contains
 			write(funit3,*)
 			write(funit3,'(a,i4)')'Mode',i
 			d3=(nliveP-locNpt(i))*sinfo/locInfo(i)+locNpt(i)
-			write(funit3,'(a,E28.18,a,E28.18)')"Strictly Local Log-Evidence",slocZ," +/-",sqrt(sinfo/locNpt(i))
-			write(funit3,'(a,E28.18,a,E28.18)')"Local Log-Evidence",locZ(i)," +/-",sqrt(locInfo(i)/d3)
+			write(funit3,'(a,E28.18E4,a,E28.18E4)')"Strictly Local Log-Evidence",slocZ," +/-",sqrt(sinfo/locNpt(i))
+			write(funit3,'(a,E28.18E4,a,E28.18E4)')"Local Log-Evidence",locZ(i)," +/-",sqrt(locInfo(i)/d3)
      		endif
 		write(funit3,'(a)')""
 		write(funit3,'(a)')"Dim No.       Mean        Sigma"
            	do j=1,nPar
-           		!write(funit3,'(i4,2E28.18)')j,stMu(i,j),stSigma(i,j)
-           		write(funit3,'(i4,2E28.18)')j,mean(i,j),sigma(i,j)
+           		!write(funit3,'(i4,2E28.18E4)')j,stMu(i,j),stSigma(i,j)
+           		write(funit3,'(i4,2E28.18E4)')j,mean(i,j),sigma(i,j)
            	enddo      		
             	write(funit3,'(a)')""
             	write(funit3,'(a)')"Maximum Likelihood Parameters"
             	write(funit3,'(a)')"Dim No.        Parameter"
             	do j=1,nPar
-           		write(funit3,'(i4,1E28.18)')j,maxLike(j)
+           		write(funit3,'(i4,1E28.18E4)')j,maxLike(j)
            	enddo
       		write(funit3,'(a)')""
            	write(funit3,'(a)')"MAP Parameters"
            	write(funit3,'(a)')"Dim No.        Parameter"
            	do j=1,nPar
-           		write(funit3,'(i4,1E28.18)')j,MAP(j)
+           		write(funit3,'(i4,1E28.18E4)')j,MAP(j)
            	enddo
 		write(funit4,stfmt)mean(i,1:nPar),sigma(i,1:nPar),maxLike(1:nPar),MAP(1:nPar),locZ(i),d2
 	enddo
