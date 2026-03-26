@@ -286,7 +286,7 @@ contains
 		numlike=0
 		vnow1=1.d0
 
-		write(fmt,'(a,i5,a)')  '(',np+1,'E28.18)'
+		write(fmt,'(a,i5,a)')  '(',np+1,'E28.18E4)'
 	
 		genLive=.true.
 	
@@ -312,7 +312,7 @@ contains
 			if( .not.genLive ) then
 				j = 0
 				open(unit=u_ev,file=evname,status='old') 
-				write(fmt,'(a,i2.2,a)')  '(',totPar+2,'E28.18,i3)'
+				write(fmt,'(a,i2.2,a)')  '(',totPar+2,'E28.18E4,i3)'
 				do
 					read(55,*,IOSTAT=ios) ltmp(1:totPar+2),k
 				
@@ -423,8 +423,8 @@ contains
     			open(unit=u_resume,file=resumename,form='formatted',status='replace')
     			write(u_resume,'(l2)')genLive
     			close(u_resume)
-    			write(fmt,'(a,i5,a)')  '(',ndims+1,'E28.18)'
-    			write(fmt2,'(a,i5,a)')  '(',totPar+1,'E28.18,i4)'
+    			write(fmt,'(a,i5,a)')  '(',ndims+1,'E28.18E4)'
+    			write(fmt2,'(a,i5,a)')  '(',totPar+1,'E28.18E4,i4)'
 		endif
 
     		id=0
@@ -1086,25 +1086,25 @@ contains
 	                        	!write the resume file
 	                        	funit1=u_resume
 					fName1=resumename
-	                        	write(fmt,'(a,i5,a)')  '(',totPar+1,'E28.18,i4)'
+	                        	write(fmt,'(a,i5,a)')  '(',totPar+1,'E28.18E4,i4)'
 					open(unit=funit1,file=fName1,form='formatted',status='replace')
 					write(funit1,'(l2)').false.
 					write(funit1,'(4i12)')globff,numlike,ic_n,nlive
-					write(funit1,'(2E28.18)')gZ,ginfo
+					write(funit1,'(2E28.18E4)')gZ,ginfo
 					write(funit1,'(l2)')eswitch
 	            			!write branching info
 		            		do i=1,ic_n
 	            				write(funit1,'(i4)')ic_nBrnch(i)
 						if(ic_nBrnch(i)>0) then
-							write(fmt,'(a,i5,a)')  '(',2*ic_nBrnch(i),'E28.18)'
+							write(fmt,'(a,i5,a)')  '(',2*ic_nBrnch(i),'E28.18E4)'
 							write(funit1,fmt)ic_brnch(i,1:ic_nBrnch(i),1),ic_brnch(i,1:ic_nBrnch(i),2)
 						endif
 					enddo
 					!write the node info
 					do i=1,ic_n
 						write(funit1,'(2l2,i6,i12)')ic_done(i),ic_reme(i),ic_fNode(i),ic_npt(i)
-						write(funit1,'(3E28.18)')ic_vnow(i),ic_Z(i),ic_info(i)
-						if(ceff) write(funit1,'(1E28.18)')ic_eff(i,4)
+						write(funit1,'(3E28.18E4)')ic_vnow(i),ic_Z(i),ic_info(i)
+						if(ceff) write(funit1,'(1E28.18E4)')ic_eff(i,4)
 					enddo
 	                  		close(funit1)
 				endif
@@ -2376,7 +2376,7 @@ contains
 						funit1=u_ev
 						fName1=evname
 						open(unit=funit1,file=fName1,form='formatted',status='old', position='append')
-	    					write(fmt,'(a,i5,a)')  '(',totPar+2,'E28.18,i5)'	
+	    					write(fmt,'(a,i5,a)')  '(',totPar+2,'E28.18E4,i5)'	
 						do i=1,j1
 	    						write(funit1,fmt) evData(i,1:totPar+2),int(evData(i,totPar+3))
 						enddo
@@ -2391,8 +2391,8 @@ contains
 						open(unit=funit1,file=fName1,form='formatted',status='replace')
 						open(unit=funit2,file=fName2,form='formatted',status='replace')
 	                		
-						write(fmt,'(a,i5,a)')  '(',totPar+1,'E28.18,i4)'
-	                			write(fmt1,'(a,i5,a)')  '(',ndims+1,'E28.18)'
+						write(fmt,'(a,i5,a)')  '(',totPar+1,'E28.18E4,i4)'
+	                			write(fmt1,'(a,i5,a)')  '(',ndims+1,'E28.18E4)'
 						k=0
 						do i=1,ic_n
 							do j=1,ic_npt(i)
@@ -2414,14 +2414,14 @@ contains
 	                	  	
 						write(funit1,'(l2)')genLive
 						write(funit1,'(4i12)')globff,numlike,ic_n,nlive
-						write(funit1,'(2E28.18)')gZ,ginfo
+						write(funit1,'(2E28.18E4)')gZ,ginfo
 						write(funit1,'(l2)')eswitch
 					
 	            				!write branching info
 		            			do i=1,ic_n
 	            					write(funit1,'(i4)')ic_nBrnch(i)
 							if(ic_nBrnch(i)>0) then
-								write(fmt,'(a,i5,a)')  '(',2*ic_nBrnch(i),'E28.18)'
+								write(fmt,'(a,i5,a)')  '(',2*ic_nBrnch(i),'E28.18E4)'
 								write(funit1,fmt)ic_brnch(i,1:ic_nBrnch(i),1), ic_brnch(i,1:ic_nBrnch(i),2)
 							endif
 						enddo
@@ -2429,8 +2429,8 @@ contains
 						!write the node info
 						do i=1,ic_n
 							write(funit1,'(2l2,i6,i12)')ic_done(i),ic_reme(i),ic_fNode(i),ic_npt(i)
-							write(funit1,'(3E28.18)')ic_vnow(i),ic_Z(i),ic_info(i)
-							if(ceff) write(funit1,'(1E28.18)')ic_eff(i,4)
+							write(funit1,'(3E28.18E4)')ic_vnow(i),ic_Z(i),ic_info(i)
+							if(ceff) write(funit1,'(1E28.18E4)')ic_eff(i,4)
 						enddo
 	                  			close(funit1)
 						
