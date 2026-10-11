@@ -9,10 +9,14 @@ Last verified: 2026-10-11 on macOS (serial and MPI, 2 ranks). Not yet run on the
 
 | Package | Fork (push here) | Upstream it is based on | Last code change (minimum required) |
 |---|---|---|---|
-| MultiNest (Fortran library) | https://github.com/Bhavesh012/MultiNest | JohannesBuchner/MultiNest master `a06c192` | `03e8e41` |
-| PyMultiNest (Python wrapper) | https://github.com/Bhavesh012/PyMultiNest | JohannesBuchner/PyMultiNest master `920f725` | `ea94325` |
+| MultiNest (Fortran library) | https://github.com/Bhavesh012/MultiNest | JohannesBuchner/MultiNest master `ced3839` (merged in `ae3db1d`) | `03e8e41` |
+| PyMultiNest (Python wrapper) | https://github.com/Bhavesh012/PyMultiNest | JohannesBuchner/PyMultiNest master `7aceb48` (merged in `f749fc4`) | `ea94325` |
 
-Both are tracked on branch `master`. This guide was added to the MultiNest fork in the commit after `03e8e41`.
+Both are tracked on branch `master`. To pick up new upstream commits, add the upstream remote
+(`git remote add upstream https://github.com/JohannesBuchner/<repo>.git`), fetch it, and *merge* (never rebase:
+the forks are published) `upstream/master`. Then rebuild and rerun the self-test before pushing. The 2026-09-05
+upstream commits merged on 2026-10-11 only touched CMake/packaging files; the library was bit-identical
+afterwards. This guide was added to the MultiNest fork in the commit after `03e8e41`.
 Run `git log --oneline` and compare with the table: newer commits that change code are the owner's and take
 precedence over this file.
 
@@ -86,7 +90,7 @@ Use the GNU toolchain. Build MultiNest with the same MPI that mpi4py will use.
 
 ```bash
 # 0. modules: names differ per cluster, check `module avail`
-module load gcc cmake openmpi openblas      # or: intel-mkl / mpich, etc.
+module load gcc cmake openmpi openblas      # or: intel-mkl / mpich, etc.  CMake >= 3.10 is required
 
 # 1. sources (pick a directory on a shared filesystem visible from compute nodes)
 mkdir -p ~/packages && cd ~/packages
@@ -97,7 +101,10 @@ git clone https://github.com/Bhavesh012/PyMultiNest.git
 cd ~/packages/MultiNest/build
 cmake .. && make                             # NOT `make install` (targets /usr/local, makes a second hidden copy)
 ls ../lib                                    # libs always land in MultiNest/lib (LIBRARY_OUTPUT_PATH)
-# full rebuild later (other compiler/MPI): remove everything in build/ except README and .gitignore, rerun cmake
+# full rebuild later (other compiler/MPI, or after CMakeLists changes): remove everything in build/ except
+# README and .gitignore, then rerun cmake. A stale CMakeCache.txt from before the 3.10..4.4 bump fails with
+# "Could not find m" in src/example_eggbox_C; a clean build directory fixes it.
+# To pin the MPI (must match mpi4py): cmake .. -DMPI_Fortran_COMPILER=$(which mpif90) -DMPI_C_COMPILER=$(which mpicc)
 
 # 3. make the library findable: add to ~/.bashrc AND to every Slurm/PBS job script
 export LD_LIBRARY_PATH=$HOME/packages/MultiNest/lib:$LD_LIBRARY_PATH
@@ -122,6 +129,9 @@ Notes:
   (conda Pythons point to `$CONDA_PREFIX/lib`, so a conda `multinest` package there wins), then `LD_LIBRARY_PATH`,
   then the ldconfig cache. Under `mpiexec`/`srun` with more than one rank it also loads `libmultinest_mpi.so`
   (`pymultinest/run.py`). The self-test prints the file that actually got mapped.
+- Do not use `make install` from PyMultiNest's own `Makefile`. It clones *upstream* MultiNest (without the E4
+  fix) and does a non-editable `pip install .`. Its `make test` target is fine once `LD_LIBRARY_PATH` points to
+  the fork library.
 - If the downstream codes (ForMoSA, petitRADTRANS) are installed with pip, install them first and the
   PyMultiNest fork last, or use `--no-deps` for them. Otherwise pip may pull PyPI `pymultinest` back in.
 
