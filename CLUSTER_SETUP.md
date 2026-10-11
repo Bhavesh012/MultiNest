@@ -7,13 +7,14 @@ Last verified: 2026-10-11 on macOS (serial and MPI, 2 ranks). Not yet run on the
 
 ## 1. The two repositories
 
-| Package | Fork (push here) | Upstream it is based on | Fork HEAD at time of writing |
+| Package | Fork (push here) | Upstream it is based on | Last code change (minimum required) |
 |---|---|---|---|
 | MultiNest (Fortran library) | https://github.com/Bhavesh012/MultiNest | JohannesBuchner/MultiNest master `a06c192` | `03e8e41` |
 | PyMultiNest (Python wrapper) | https://github.com/Bhavesh012/PyMultiNest | JohannesBuchner/PyMultiNest master `920f725` | `ea94325` |
 
-Both are tracked on branch `master`. Run `git log --oneline` and compare with the table: if the fork has moved on,
-the newer commits are the owner's and take precedence over this file.
+Both are tracked on branch `master`. This guide was added to the MultiNest fork in the commit after `03e8e41`.
+Run `git log --oneline` and compare with the table: newer commits that change code are the owner's and take
+precedence over this file.
 
 ## 2. What the forks change, and why
 
@@ -54,7 +55,32 @@ the newer commits are the owner's and take precedence over this file.
   They shadow the forks quietly. The conda-forge build is the 2015 v3.10 tag. It still has the E-less exponent bug,
   and it crashes on output paths over 100 characters (`File already opened in another unit`); the forks allow 1000.
 
-## 3. Installing on the cluster
+## 3. If MultiNest/PyMultiNest already exist on the cluster
+
+Older copies may still be at fork commits `4619331` (MultiNest, broken `write_output=False`) or `0d278dc`
+(PyMultiNest, `get_stats()` crashes with INS off). Stale copies shadowing the fork were the main problem on the
+laptop. Before installing anything, take an inventory and show it to the owner:
+
+```bash
+find ~ /scratch* $SCRATCH $WORK -name 'libmultinest*.so*' 2>/dev/null     # every built library
+grep -n -E "MultiNest|LD_LIBRARY_PATH" ~/.bashrc ~/.bash_profile ~/.profile 2>/dev/null
+ls -d ~/.local/lib/python3.*/site-packages/pymultinest* 2>/dev/null       # --user installs shadow ALL envs of that Python version
+for e in $(conda env list | awk '!/^#/ && NF {print $NF}'); do
+  echo "$e: $($e/bin/python -c 'import importlib.util as u; s=u.find_spec("pymultinest"); print(s.origin if s else "-")' 2>/dev/null)"
+done                                                                     # run this from a directory that is NOT a PyMultiNest checkout
+```
+
+Then:
+
+- **Existing clone of the fork:** `git pull` to at least the commits in the table, then run `make` in `MultiNest/build`.
+- **Copy from somewhere else** (upstream clone, PyPI, conda-forge, a hand-copied `.so`): leave it on disk,
+  but make sure nothing loads it. Remove it from `LD_LIBRARY_PATH`, and in envs that use the fork run
+  `pip uninstall pymultinest` or `conda remove multinest pymultinest`.
+- **Non-editable or `--user` pymultinest copies:** replace them with `pip install --no-deps -e <PyMultiNest clone>`.
+  Use `pip install --user ...` only when a `--user` copy was already there and other envs relied on it.
+  Remember that the user site comes before env site-packages.
+
+## 4. Installing on the cluster
 
 Use the GNU toolchain. Build MultiNest with the same MPI that mpi4py will use.
 
@@ -91,13 +117,15 @@ Notes:
 
 - `CMakeLists.txt` already adds `-ffree-line-length-none` and, for gfortran 10 and newer, `-fallow-argument-mismatch`.
   If cmake does not find LAPACK, load a BLAS/LAPACK module or pass `-DLAPACK_LIBRARIES=...`.
-- On Linux, PyMultiNest calls `ctypes.cdll.LoadLibrary('libmultinest.so')`, so `LD_LIBRARY_PATH` decides which
-  library is loaded. Under `mpiexec`/`srun` with more than one rank it also loads `libmultinest_mpi.so`
-  (`pymultinest/run.py`).
+- On Linux, PyMultiNest calls `ctypes.cdll.LoadLibrary('libmultinest.so')` with the bare name (`find_library`
+  is only used on macOS). That makes it the dynamic loader's choice: the Python binary's RPATH comes first
+  (conda Pythons point to `$CONDA_PREFIX/lib`, so a conda `multinest` package there wins), then `LD_LIBRARY_PATH`,
+  then the ldconfig cache. Under `mpiexec`/`srun` with more than one rank it also loads `libmultinest_mpi.so`
+  (`pymultinest/run.py`). The self-test prints the file that actually got mapped.
 - If the downstream codes (ForMoSA, petitRADTRANS) are installed with pip, install them first and the
   PyMultiNest fork last, or use `--no-deps` for them. Otherwise pip may pull PyPI `pymultinest` back in.
 
-## 4. Verifying the install
+## 5. Verifying the install
 
 Save the script below as `fork_selftest.py` and run it from an empty scratch directory: once serially, and once
 under MPI inside an interactive or batch allocation. It takes about a minute. Each check targets a specific
@@ -265,7 +293,7 @@ if rank == 0:
 sys.exit(1 if failures else 0)
 ```
 
-## 5. Known behaviour that is NOT a bug in the forks
+## 6. Known behaviour that is NOT a bug in the forks
 
 - **The first run in a Python process differs from later identical runs** with the same seed. MultiNest keeps state
   between calls; after the first call, results are reproducible. This was verified with stock upstream, the forks
@@ -280,7 +308,7 @@ sys.exit(1 if failures else 0)
   - The Python dumper signature lacks `INSlogZ`, so the argument named `logZerr` actually holds INSlogZ.
 - **`pycuba` imports fail** when `libcuba.so` is not built. This is unrelated and was already the case before.
 
-## 6. Downstream code that depends on these files
+## 7. Downstream code that depends on these files
 
 - **ForMoSA** (`nested_sampling/results.py`) uses the basename `RAW_`. It reads:
   - `RAW_stats.dat` with `split()[5]` and `[7]` (global evidence and its error, via `float()`);
@@ -289,7 +317,7 @@ sys.exit(1 if failures else 0)
 - **petitRADTRANS 4** (`retrieval/sampler.py`, `post_run`) calls `Analyzer.get_stats()` without a try/except.
   It needs the fork parser.
 
-## 7. If something needs fixing
+## 8. If something needs fixing
 
 1. Reproduce it with the smallest script you can (start from `fork_selftest.py`). Confirm which library and which
    `pymultinest` are actually loaded before blaming the code: an outside copy shadowing the fork is the most
